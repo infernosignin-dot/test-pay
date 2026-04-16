@@ -1,0 +1,1096 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>StrideRx — Booking</title>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;500;600&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+
+:root{
+  --green:#4A7C1F;
+  --green-mid:#639922;
+  --green-light:#EAF3DE;
+  --green-pale:#F4FAF0;
+  --ink:#1A2410;
+  --ink-mid:#3D4F30;
+  --ink-light:#7A8F6A;
+  --border:#D4E8BB;
+  --border-light:#ECF5E0;
+  --white:#FFFFFF;
+  --cream:#FAFDF7;
+  --shadow:0 4px 24px rgba(74,124,31,0.10);
+  --shadow-sm:0 2px 8px rgba(74,124,31,0.08);
+}
+
+body{
+  background: linear-gradient(145deg, #F0F8E8 0%, #EDF7E2 40%, #F5FBF0 100%);
+  min-height:100vh;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  font-family:'DM Sans',sans-serif;
+  padding:2rem 1rem;
+}
+
+body::before{
+  content:'';
+  position:fixed;
+  top:-20%;left:-10%;
+  width:60%;height:60%;
+  background:radial-gradient(ellipse, rgba(99,153,34,0.08) 0%, transparent 70%);
+  pointer-events:none;
+}
+body::after{
+  content:'';
+  position:fixed;
+  bottom:-20%;right:-10%;
+  width:50%;height:50%;
+  background:radial-gradient(ellipse, rgba(74,124,31,0.06) 0%, transparent 70%);
+  pointer-events:none;
+}
+
+.phone-shell{
+  width:100%;
+  max-width:400px;
+  background:rgba(255,255,255,0.6);
+  backdrop-filter:blur(20px);
+  border:1px solid rgba(212,232,187,0.8);
+  border-radius:32px;
+  padding:6px;
+  box-shadow: 0 20px 60px rgba(74,124,31,0.15), 0 4px 12px rgba(74,124,31,0.08);
+  position:relative;
+  z-index:1;
+}
+
+.screen{
+  background:var(--white);
+  border-radius:28px;
+  overflow:hidden;
+  min-height:600px;
+  position:relative;
+}
+
+/* STEP INDICATOR */
+.step-bar{
+  padding:1.5rem 1.5rem 0;
+}
+.step-dots{
+  display:flex;gap:6px;margin-bottom:6px;
+}
+.step-dot{
+  height:3px;flex:1;border-radius:2px;
+  background:var(--border-light);
+  transition:background 0.35s ease;
+}
+.step-dot.active{background:var(--green-mid);}
+.step-dot.done{background:var(--green);}
+.step-label{font-size:10px;color:var(--ink-light);letter-spacing:0.06em;text-transform:uppercase;font-weight:500}
+
+/* MOTIVATIONAL BANNER */
+.motive-banner{
+  display:none;
+  text-align:center;
+  padding:1.25rem 1.5rem 0;
+  opacity:0;
+  transform:translateY(-12px) scale(0.97);
+  transition:opacity 0.4s cubic-bezier(0.34,1.56,0.64,1), transform 0.4s cubic-bezier(0.34,1.56,0.64,1);
+}
+.motive-banner.show{
+  display:block;
+  opacity:1;
+  transform:translateY(0) scale(1);
+}
+/* Staggered lines inside banner */
+.motive-banner .motive-text,
+.motive-banner .motive-sub {
+  opacity:0;
+  transform:translateY(6px);
+  transition:opacity 0.28s ease, transform 0.28s ease;
+}
+.motive-banner.show .motive-text{
+  opacity:1;transform:translateY(0);
+  transition-delay:0.08s;
+}
+.motive-banner.show .motive-sub{
+  opacity:1;transform:translateY(0);
+  transition-delay:0.18s;
+}
+.motive-text{
+  font-family:'Playfair Display',serif;
+  font-size:22px;
+  font-weight:600;
+  color:var(--green);
+  line-height:1.3;
+  letter-spacing:-0.01em;
+}
+.motive-sub{
+  font-size:12px;color:var(--ink-light);margin-top:4px;font-weight:300;
+}
+
+/* SECTION WRAPPER */
+.section{
+  display:none;
+  opacity:0;
+  transform:translateX(28px);
+  transition:opacity 0.28s ease, transform 0.28s cubic-bezier(0.22,1,0.36,1);
+}
+.section.active{
+  display:block;
+  opacity:1;
+  transform:translateX(0);
+}
+.section.exit{
+  opacity:0;
+  transform:translateX(-28px);
+  transition:opacity 0.22s ease, transform 0.22s cubic-bezier(0.22,1,0.36,1);
+}
+
+.scroll-area{padding:1.5rem;display:flex;flex-direction:column;gap:1.4rem;}
+
+/* Staggered children in scroll-area */
+.scroll-area > * {
+  opacity:0;
+  transform:translateY(8px);
+  animation:none;
+}
+.section.active .scroll-area > *:nth-child(1){animation:fadeUpChild 0.25s 0.05s ease forwards;}
+.section.active .scroll-area > *:nth-child(2){animation:fadeUpChild 0.25s 0.12s ease forwards;}
+.section.active .scroll-area > *:nth-child(3){animation:fadeUpChild 0.25s 0.18s ease forwards;}
+.section.active .scroll-area > *:nth-child(4){animation:fadeUpChild 0.25s 0.23s ease forwards;}
+.section.active .scroll-area > *:nth-child(5){animation:fadeUpChild 0.25s 0.27s ease forwards;}
+@keyframes fadeUpChild{
+  from{opacity:0;transform:translateY(8px);}
+  to{opacity:1;transform:translateY(0);}
+}
+
+/* Page title fade-slide */
+.page-title{
+  font-family:'Playfair Display',serif;
+  font-size:22px;font-weight:500;
+  color:var(--ink);margin-bottom:3px;line-height:1.3;
+}
+.page-sub{font-size:13px;color:var(--ink-light);}
+
+/* LABELS */
+.label{
+  font-size:10.5px;letter-spacing:0.08em;color:var(--ink-light);
+  font-weight:500;text-transform:uppercase;margin-bottom:10px;
+}
+
+/* INPUTS */
+.inp{
+  width:100%;padding:13px 14px;
+  border:1px solid var(--border);
+  border-radius:12px;font-size:15px;
+  background:var(--cream);
+  color:var(--ink);
+  font-family:'DM Sans',sans-serif;
+  outline:none;
+  transition:border-color 0.18s, box-shadow 0.18s, background 0.18s;
+}
+.inp:focus{
+  border-color:var(--green-mid);
+  box-shadow:0 0 0 3px rgba(99,153,34,0.12);
+  background:var(--white);
+}
+.inp-row{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
+.phone-row{display:flex;gap:8px;}
+.phone-prefix{
+  padding:13px 14px;
+  border:1px solid var(--border);
+  border-radius:12px;
+  font-size:15px;
+  color:var(--ink-light);
+  background:var(--cream);
+  white-space:nowrap;
+  font-family:'DM Sans',sans-serif;
+}
+
+/* PROGRAMME CARDS */
+.prog-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
+.prog-card{
+  border:1.5px solid var(--border);
+  border-radius:16px;
+  padding:16px 14px;
+  cursor:pointer;
+  background:var(--cream);
+  transition:all 0.2s cubic-bezier(0.22,1,0.36,1);
+  position:relative;
+  overflow:hidden;
+  -webkit-tap-highlight-color: transparent;
+  user-select:none;
+}
+.prog-card::before{
+  content:'';
+  position:absolute;inset:0;
+  background:linear-gradient(135deg, var(--green-light) 0%, transparent 60%);
+  opacity:0;transition:opacity 0.22s;
+  border-radius:14px;
+}
+.prog-card:hover{
+  border-color:var(--green-mid);
+  transform:translateY(-2px);
+  box-shadow:var(--shadow-sm);
+}
+.prog-card:active{
+  transform:scale(0.97) !important;
+  transition:transform 0.1s ease !important;
+}
+.prog-card.selected{
+  border-color:var(--green);
+  background:var(--green-light);
+  box-shadow:0 4px 16px rgba(74,124,31,0.18);
+  transform:translateY(-2px) scale(1);
+}
+.prog-card.selected::before{opacity:1;}
+.prog-card.tap-pulse{
+  animation:tapPulse 0.25s cubic-bezier(0.22,1,0.36,1);
+}
+@keyframes tapPulse{
+  0%{transform:scale(1);}
+  40%{transform:scale(0.97);}
+  100%{transform:scale(1);}
+}
+.prog-icon{
+  width:36px;height:36px;
+  border-radius:10px;
+  background:var(--green-light);
+  display:flex;align-items:center;justify-content:center;
+  margin-bottom:10px;
+  transition:background 0.2s;
+}
+.prog-card.selected .prog-icon{background:rgba(99,153,34,0.25);}
+.prog-name{font-size:13px;font-weight:500;color:var(--ink);line-height:1.3;margin-bottom:2px;}
+.prog-sub{font-size:11px;color:var(--ink-light);}
+.prog-card.selected .prog-name{color:var(--green);}
+.prog-card.selected .prog-sub{color:var(--ink-mid);}
+
+/* PACKAGE CARDS */
+.pkg-stack{display:flex;flex-direction:column;gap:10px;}
+.pkg-card{
+  border:1.5px solid var(--border);
+  border-radius:16px;
+  padding:16px 18px;
+  cursor:pointer;
+  background:var(--cream);
+  position:relative;
+  transition:all 0.22s cubic-bezier(0.22,1,0.36,1);
+  -webkit-tap-highlight-color: transparent;
+  user-select:none;
+}
+.pkg-card:hover{
+  border-color:var(--green-mid);
+  transform:translateY(-1px);
+  box-shadow:var(--shadow-sm);
+}
+.pkg-card:active{
+  transform:scale(0.98) !important;
+  transition:transform 0.1s ease !important;
+}
+.pkg-card.selected{
+  border-color:var(--green);
+  background:var(--green-light);
+  box-shadow:0 4px 20px rgba(74,124,31,0.18);
+}
+.pkg-card.tap-pulse{
+  animation:tapPulse 0.25s cubic-bezier(0.22,1,0.36,1);
+}
+.pkg-card.recommended{border-color:var(--green-mid);}
+.rec-badge{
+  position:absolute;top:-1px;right:14px;
+  background:var(--green);
+  color:var(--white);
+  font-size:9.5px;font-weight:500;
+  padding:3px 10px;
+  border-radius:0 0 8px 8px;
+  letter-spacing:0.06em;text-transform:uppercase;
+}
+.pkg-top{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:10px;}
+.pkg-name{font-size:15px;font-weight:500;color:var(--ink);}
+.pkg-price{
+  font-family:'Playfair Display',serif;
+  font-size:20px;font-weight:600;color:var(--green);
+}
+.pkg-card.selected .pkg-name{color:var(--green);}
+.pkg-feats{display:flex;flex-direction:column;gap:6px;}
+.pkg-feat{display:flex;align-items:center;gap:8px;font-size:12px;color:var(--ink-mid);}
+.pkg-card.selected .pkg-feat{color:var(--ink-mid);}
+.feat-dot{
+  width:5px;height:5px;
+  border-radius:50%;
+  background:var(--green-mid);
+  flex-shrink:0;
+}
+
+/* CTA BUTTON */
+.cta-btn{
+  width:100%;padding:15px;
+  background:linear-gradient(135deg, var(--green) 0%, var(--green-mid) 100%);
+  color:var(--white);
+  border:none;border-radius:14px;
+  font-size:15px;font-weight:500;
+  cursor:pointer;
+  font-family:'DM Sans',sans-serif;
+  letter-spacing:0.01em;
+  transition:all 0.18s;
+  box-shadow:0 4px 14px rgba(74,124,31,0.3);
+  position:relative;overflow:hidden;
+  -webkit-tap-highlight-color: transparent;
+  user-select:none;
+}
+.cta-btn::after{
+  content:'';position:absolute;inset:0;
+  background:linear-gradient(135deg, rgba(255,255,255,0.12) 0%, transparent 50%);
+  border-radius:14px;
+  pointer-events:none;
+}
+.cta-btn:hover:not(:disabled){transform:translateY(-1px);box-shadow:0 6px 20px rgba(74,124,31,0.35);}
+.cta-btn:active:not(:disabled){transform:scale(0.97);opacity:0.92;transition:transform 0.08s ease,opacity 0.08s ease;}
+.cta-btn:disabled{opacity:0.45;cursor:not-allowed;}
+
+/* Ripple on CTA */
+.cta-btn .ripple{
+  position:absolute;border-radius:50%;
+  background:rgba(255,255,255,0.35);
+  transform:scale(0);
+  animation:rippleAnim 0.45s linear;
+  pointer-events:none;
+}
+@keyframes rippleAnim{
+  to{transform:scale(4);opacity:0;}
+}
+
+.cta-note{text-align:center;font-size:11.5px;color:var(--ink-light);margin-top:8px;}
+
+/* Razorpay trust line */
+.razorpay-trust{
+  display:flex;align-items:center;justify-content:center;gap:6px;
+  margin-bottom:8px;
+  font-size:11px;color:var(--ink-light);
+  opacity:0.85;
+}
+.razorpay-trust svg{flex-shrink:0;}
+
+/* PAYMENT MOCK */
+.payment-sheet{
+  background:var(--white);
+  border:1px solid var(--border);
+  border-radius:20px;
+  padding:20px;
+  box-shadow:var(--shadow);
+}
+.pay-row{
+  display:flex;justify-content:space-between;align-items:center;
+  padding:10px 0;
+  border-bottom:1px solid var(--border-light);
+  font-size:13px;
+}
+.pay-row:last-child{border-bottom:none;}
+.pay-label{color:var(--ink-light);}
+.pay-val{font-weight:500;color:var(--ink);}
+.pay-total{font-family:'Playfair Display',serif;font-size:22px;font-weight:600;color:var(--green);}
+.payment-methods{display:flex;gap:8px;margin:12px 0;}
+.pay-method{
+  flex:1;padding:10px 6px;
+  border:1.5px solid var(--border);
+  border-radius:10px;background:var(--cream);
+  font-size:11px;font-weight:500;color:var(--ink-mid);
+  cursor:pointer;text-align:center;
+  transition:all 0.15s;
+  user-select:none;
+  -webkit-tap-highlight-color:transparent;
+}
+.pay-method:active{transform:scale(0.96);}
+.pay-method.selected,.pay-method:hover{
+  border-color:var(--green-mid);
+  background:var(--green-light);
+  color:var(--green);
+}
+
+/* Payment block reveal */
+#payment-block{
+  display:none;
+  opacity:0;
+  transform:translateY(14px);
+  transition:opacity 0.28s cubic-bezier(0.22,1,0.36,1), transform 0.28s cubic-bezier(0.22,1,0.36,1);
+}
+#payment-block.visible{
+  display:block;
+  opacity:1;
+  transform:translateY(0);
+}
+
+/* SUCCESS BANNER */
+.success-banner{
+  background:var(--green-light);
+  border:1px solid var(--border);
+  border-radius:14px;
+  padding:14px 16px;
+  display:flex;align-items:center;gap:12px;
+}
+.success-check{
+  width:34px;height:34px;border-radius:50%;
+  background:var(--green);
+  display:flex;align-items:center;justify-content:center;
+  flex-shrink:0;
+}
+
+/* ADDRESS */
+.loc-btn{
+  width:100%;padding:13px;
+  border:1.5px solid var(--green-mid);
+  border-radius:12px;
+  background:var(--green-light);
+  color:var(--green);
+  font-size:13px;font-weight:500;cursor:pointer;
+  font-family:'DM Sans',sans-serif;
+  display:flex;align-items:center;justify-content:center;gap:8px;
+  transition:all 0.18s;
+  -webkit-tap-highlight-color:transparent;
+}
+.loc-btn:active{transform:scale(0.98);}
+.loc-btn:hover{background:var(--green-pale);border-color:var(--green);}
+
+.divider-row{display:flex;align-items:center;gap:10px;}
+.divider-line{flex:1;height:1px;background:var(--border-light);}
+.divider-text{font-size:11px;color:var(--ink-light);}
+
+/* TIME CHIPS */
+.time-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;}
+.time-chip{
+  padding:10px 6px;
+  border:1px solid var(--border);
+  border-radius:10px;
+  font-size:12px;
+  color:var(--ink-mid);
+  text-align:center;cursor:pointer;
+  background:var(--cream);
+  transition:all 0.15s;
+  font-family:'DM Sans',sans-serif;
+  user-select:none;
+  -webkit-tap-highlight-color:transparent;
+}
+.time-chip:active{transform:scale(0.95);}
+.time-chip.selected{
+  border-color:var(--green);
+  background:var(--green-light);
+  color:var(--green);
+  font-weight:500;
+}
+.time-chip:hover{border-color:var(--green-mid);}
+
+/* TRUST STRIP */
+.trust-strip{
+  display:flex;justify-content:space-between;
+  padding:12px 0;
+  border-top:1px solid var(--border-light);
+}
+.trust-item{display:flex;flex-direction:column;align-items:center;gap:3px;flex:1;}
+.trust-icon{width:6px;height:6px;border-radius:50%;background:var(--green-mid);margin-bottom:2px;}
+.trust-label{font-size:10px;color:var(--ink-light);text-align:center;line-height:1.3;}
+
+/* CONFIRM SCREEN */
+.confirm-wrap{
+  padding:2.5rem 1.5rem;
+  display:flex;flex-direction:column;
+  align-items:center;text-align:center;
+  gap:1rem;
+}
+.big-check{
+  width:64px;height:64px;
+  border-radius:50%;
+  background:linear-gradient(135deg, var(--green) 0%, var(--green-mid) 100%);
+  display:flex;align-items:center;justify-content:center;
+  box-shadow:0 8px 24px rgba(74,124,31,0.30);
+  animation:popIn 0.45s cubic-bezier(0.34,1.56,0.64,1) forwards;
+}
+@keyframes popIn{
+  from{transform:scale(0.4);opacity:0;}
+  to{transform:scale(1);opacity:1;}
+}
+.confirm-title{
+  font-family:'Playfair Display',serif;
+  font-size:26px;font-weight:600;
+  color:var(--ink);line-height:1.2;
+}
+.confirm-sub{font-size:13px;color:var(--ink-light);line-height:1.6;max-width:260px;}
+.summary-card{
+  width:100%;
+  background:var(--cream);
+  border:1px solid var(--border);
+  border-radius:16px;
+  padding:1rem;
+  margin-top:0.5rem;
+}
+.summary-row{
+  display:flex;justify-content:space-between;
+  padding:7px 0;
+  font-size:13px;
+  border-bottom:1px solid var(--border-light);
+}
+.summary-row:last-child{border-bottom:none;}
+.sum-key{color:var(--ink-light);}
+.sum-val{font-weight:500;color:var(--ink);}
+
+/* HIDDEN */
+.hidden{display:none!important;}
+
+/* Input valid glow */
+.inp.valid{
+  border-color:var(--green-mid);
+  background:var(--white);
+}
+
+/* Phone complete nudge */
+@keyframes subtleShake{
+  0%,100%{transform:translateX(0);}
+  25%{transform:translateX(-2px);}
+  75%{transform:translateX(2px);}
+}
+</style>
+</head>
+<body>
+
+<div class="phone-shell">
+<div class="screen" id="main-screen">
+
+  <!-- STEP 1: PERSONAL DETAILS -->
+  <div id="step-1" class="section active">
+    <div class="step-bar">
+      <div class="step-dots">
+        <div class="step-dot active"></div>
+        <div class="step-dot"></div>
+        <div class="step-dot"></div>
+        <div class="step-dot"></div>
+      </div>
+      <p class="step-label">Step 1 of 4 — Let's start</p>
+    </div>
+
+    <div class="scroll-area">
+      <div>
+        <h1 class="page-title">Complete your<br>booking</h1>
+        <p class="page-sub">Takes less than 30 seconds</p>
+      </div>
+
+      <div>
+        <p class="label">Your details</p>
+        <div style="display:flex;flex-direction:column;gap:10px;">
+          <input class="inp" type="text" placeholder="What should we call you?" id="f-name" autocomplete="name">
+          <div class="phone-row">
+            <div class="phone-prefix">+91</div>
+            <input class="inp" type="tel" placeholder="Where should we send updates?" id="f-phone" style="flex:1;" maxlength="10" autocomplete="tel">
+          </div>
+          <div class="inp-row">
+            <input class="inp" type="number" placeholder="Your age" id="f-age" min="18" max="80" autocomplete="off">
+            <select class="inp" id="f-city">
+              <option value="">Your city</option>
+              <option>Delhi</option><option>Mumbai</option><option>Bangalore</option>
+              <option>Chennai</option><option>Hyderabad</option><option>Pune</option><option>Other</option>
+            </select>
+          </div>
+        </div>
+      </div>
+
+      <div>
+        <button class="cta-btn" id="cta-step1" onclick="goToStep2(event)">Continue →</button>
+        <p class="cta-note">100% private · No spam</p>
+      </div>
+
+      <div class="trust-strip">
+        <div class="trust-item"><div class="trust-icon"></div><p class="trust-label">NABL certified labs</p></div>
+        <div class="trust-item"><div class="trust-icon"></div><p class="trust-label">Specialist doctor</p></div>
+        <div class="trust-item"><div class="trust-icon"></div><p class="trust-label">Home collection</p></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- STEP 2: PROGRAMME -->
+  <div id="step-2" class="section">
+
+    <div id="motive-2" class="motive-banner">
+      <p class="motive-text">You're taking<br>a great step.</p>
+      <p class="motive-sub">Choose the programme that fits you</p>
+    </div>
+
+    <div class="step-bar" style="padding-top:0.75rem;">
+      <div class="step-dots">
+        <div class="step-dot done"></div>
+        <div class="step-dot active"></div>
+        <div class="step-dot"></div>
+        <div class="step-dot"></div>
+      </div>
+      <p class="step-label">Step 2 of 4 — Select programme</p>
+    </div>
+
+    <div class="scroll-area">
+      <div>
+        <p class="label">Which programme?</p>
+        <div class="prog-grid">
+          <div class="prog-card" id="prog-erect" onclick="selectProg('erect', this)">
+            <div class="prog-icon">
+              <svg width="18" height="18" viewBox="0 0 16 16" fill="none">
+                <circle cx="8" cy="8" r="6" stroke="#639922" stroke-width="1.3"/>
+                <path d="M5 8h6M8 5v6" stroke="#639922" stroke-width="1.3" stroke-linecap="round"/>
+              </svg>
+            </div>
+            <p class="prog-name">ErectAware™</p>
+            <p class="prog-sub">Erectile health</p>
+          </div>
+          <div class="prog-card" id="prog-hormone" onclick="selectProg('hormone', this)">
+            <div class="prog-icon">
+              <svg width="18" height="18" viewBox="0 0 16 16" fill="none">
+                <path d="M8 2v4M8 10v4M2 8h4M10 8h4" stroke="#639922" stroke-width="1.3" stroke-linecap="round"/>
+                <circle cx="8" cy="8" r="2.5" stroke="#639922" stroke-width="1.3"/>
+              </svg>
+            </div>
+            <p class="prog-name">HormoneOS™</p>
+            <p class="prog-sub">Hormonal health</p>
+          </div>
+        </div>
+      </div>
+
+      <div>
+        <button class="cta-btn" id="cta-prog" onclick="goToStep3(event)" disabled>Choose a programme →</button>
+        <p class="cta-note">You can change this anytime</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- STEP 3: PACKAGE + PAYMENT -->
+  <div id="step-3" class="section">
+
+    <div id="motive-3" class="motive-banner">
+      <p class="motive-text">Excellent choice.</p>
+      <p class="motive-sub">Pick the package that works for you</p>
+    </div>
+
+    <div class="step-bar" style="padding-top:0.75rem;">
+      <div class="step-dots">
+        <div class="step-dot done"></div>
+        <div class="step-dot done"></div>
+        <div class="step-dot active"></div>
+        <div class="step-dot"></div>
+      </div>
+      <p class="step-label">Step 3 of 4 — Select package</p>
+    </div>
+
+    <div class="scroll-area">
+      <div>
+        <p class="label">Select package</p>
+        <div class="pkg-stack">
+          <div class="pkg-card" id="pkg-essential" onclick="selectPkg('essential', this)">
+            <div class="pkg-top">
+              <p class="pkg-name">Essential</p>
+              <p class="pkg-price">₹2,999</p>
+            </div>
+            <div class="pkg-feats">
+              <div class="pkg-feat"><div class="feat-dot"></div>12 lab tests</div>
+              <div class="pkg-feat"><div class="feat-dot"></div>Smart report via WhatsApp</div>
+              <div class="pkg-feat"><div class="feat-dot"></div>Home sample collection</div>
+            </div>
+          </div>
+          <div class="pkg-card recommended" id="pkg-advanced" onclick="selectPkg('advanced', this)">
+            <div class="rec-badge">Recommended</div>
+            <div class="pkg-top" style="margin-top:4px">
+              <p class="pkg-name">Advanced</p>
+              <p class="pkg-price">₹3,999</p>
+            </div>
+            <div class="pkg-feats">
+              <div class="pkg-feat"><div class="feat-dot"></div>18 lab tests</div>
+              <div class="pkg-feat"><div class="feat-dot"></div>Smart report + interpretation</div>
+              <div class="pkg-feat"><div class="feat-dot"></div>Specialist doctor consult</div>
+              <div class="pkg-feat"><div class="feat-dot"></div>Home sample collection</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Payment block — shown after package selected -->
+      <div id="payment-block">
+        <p class="label">Secure payment</p>
+        <div class="payment-sheet">
+          <div class="pay-row">
+            <span class="pay-label">Programme</span>
+            <span class="pay-val" id="pay-prog">—</span>
+          </div>
+          <div class="pay-row">
+            <span class="pay-label">Package</span>
+            <span class="pay-val" id="pay-pkg">—</span>
+          </div>
+          <div class="pay-row" style="border-bottom:none;padding-top:12px;">
+            <span class="pay-label" style="font-size:14px;font-weight:500;color:var(--ink);">Total</span>
+            <span class="pay-total" id="pay-total">—</span>
+          </div>
+        </div>
+        <div class="payment-methods">
+          <div class="pay-method selected" onclick="selectMethod(this)">UPI</div>
+          <div class="pay-method" onclick="selectMethod(this)">Card</div>
+          <div class="pay-method" onclick="selectMethod(this)">Net Banking</div>
+        </div>
+        <div class="razorpay-trust">
+          <svg width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M6 1L1.5 3v3c0 2.5 2 4.5 4.5 5 2.5-.5 4.5-2.5 4.5-5V3L6 1z" stroke="#7A8F6A" stroke-width="1" fill="rgba(74,124,31,0.08)"/></svg>
+          Secure checkout powered by Razorpay
+        </div>
+        <button class="cta-btn" onclick="goToStep4(event)">Pay securely →</button>
+        <p class="cta-note">256-bit encrypted · No hidden charges</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- STEP 4: ADDRESS -->
+  <div id="step-4" class="section">
+
+    <div id="motive-4" class="motive-banner">
+      <p class="motive-text">Almost there!</p>
+      <p class="motive-sub">Just tell us where to come</p>
+    </div>
+
+    <div class="step-bar" style="padding-top:0.75rem;">
+      <div class="step-dots">
+        <div class="step-dot done"></div>
+        <div class="step-dot done"></div>
+        <div class="step-dot done"></div>
+        <div class="step-dot active"></div>
+      </div>
+      <p class="step-label">Step 4 of 4 — Home collection</p>
+    </div>
+
+    <div class="scroll-area">
+
+      <div class="success-banner">
+        <div class="success-check">
+          <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+            <path d="M3 8L6.5 11.5L13 5" stroke="white" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+        </div>
+        <div>
+          <p style="font-size:13px;font-weight:500;color:var(--green);">Payment successful</p>
+          <p style="font-size:11px;color:var(--ink-mid);">Now schedule your home collection</p>
+        </div>
+      </div>
+
+      <div>
+        <h2 class="page-title" style="font-size:20px;">Where should<br>we collect?</h2>
+        <p class="page-sub" style="margin-top:4px;">Our phlebotomist comes to you</p>
+      </div>
+
+      <div>
+        <button class="loc-btn" onclick="useLocation()">
+          <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+            <circle cx="7" cy="6" r="2.5" stroke="#4A7C1F" stroke-width="1.2"/>
+            <path d="M7 1v1M7 12v1M1 7h1M12 7h1" stroke="#4A7C1F" stroke-width="1.2" stroke-linecap="round"/>
+            <path d="M7 8.5C4.5 8.5 3 10 3 11.5h8c0-1.5-1.5-3-4-3z" fill="#4A7C1F" opacity="0.3"/>
+          </svg>
+          Use my current location
+        </button>
+      </div>
+
+      <div class="divider-row">
+        <div class="divider-line"></div>
+        <span class="divider-text">or enter manually</span>
+        <div class="divider-line"></div>
+      </div>
+
+      <div>
+        <p class="label">Collection address</p>
+        <div style="display:flex;flex-direction:column;gap:10px;">
+          <input class="inp" id="f-addr" type="text" placeholder="Flat / house no., building, street" autocomplete="street-address">
+          <div class="inp-row">
+            <input class="inp" id="f-pin" type="number" placeholder="Pincode" autocomplete="postal-code">
+            <input class="inp" id="f-city2" type="text" placeholder="City" autocomplete="address-level2">
+          </div>
+        </div>
+      </div>
+
+      <div>
+        <p class="label">Preferred time slot</p>
+        <div class="time-grid">
+          <div class="time-chip" onclick="selectTime(this)">7–9 am</div>
+          <div class="time-chip" onclick="selectTime(this)">9–11 am</div>
+          <div class="time-chip" onclick="selectTime(this)">11am–1pm</div>
+          <div class="time-chip" onclick="selectTime(this)">1–3 pm</div>
+          <div class="time-chip" onclick="selectTime(this)">3–5 pm</div>
+          <div class="time-chip" onclick="selectTime(this)">5–7 pm</div>
+        </div>
+      </div>
+
+      <div>
+        <button class="cta-btn" onclick="goToConfirm(event)">Confirm collection →</button>
+        <p class="cta-note">We'll send a reminder on WhatsApp</p>
+      </div>
+    </div>
+  </div>
+
+</div><!-- /main-screen -->
+
+<!-- CONFIRM SCREEN -->
+<div class="screen hidden" id="screen-confirm">
+  <div class="confirm-wrap">
+    <div class="big-check">
+      <svg width="28" height="28" viewBox="0 0 28 28" fill="none">
+        <path d="M6 14L11.5 19.5L22 9" stroke="white" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+    </div>
+    <div>
+      <p class="confirm-title">You're booked. 🌿</p>
+    </div>
+    <p class="confirm-sub">Our team will confirm your slot on WhatsApp within 2 hours.</p>
+    <div class="summary-card">
+      <div class="summary-row"><span class="sum-key">Programme</span><span class="sum-val" id="confirm-prog">—</span></div>
+      <div class="summary-row"><span class="sum-key">Package</span><span class="sum-val" id="confirm-pkg">—</span></div>
+      <div class="summary-row"><span class="sum-key">Time slot</span><span class="sum-val" id="confirm-time">—</span></div>
+    </div>
+    <div style="display:flex;gap:6px;align-items:center;margin-top:0.5rem;">
+      <div class="trust-icon"></div>
+      <p style="font-size:11px;color:var(--ink-light);">NABL certified · Private · Specialist reviewed</p>
+    </div>
+  </div>
+</div>
+
+</div><!-- /phone-shell -->
+
+<script>
+let selProg = null, selPkg = null, selTime = null;
+let autoAdvanceTimer = null;
+
+/* ── RIPPLE EFFECT ── */
+function addRipple(btn, e) {
+  const rect = btn.getBoundingClientRect();
+  const x = (e.clientX || rect.left + rect.width/2) - rect.left;
+  const y = (e.clientY || rect.top + rect.height/2) - rect.top;
+  const r = document.createElement('span');
+  r.className = 'ripple';
+  const size = Math.max(rect.width, rect.height) * 1.5;
+  r.style.cssText = `width:${size}px;height:${size}px;left:${x - size/2}px;top:${y - size/2}px`;
+  btn.appendChild(r);
+  setTimeout(() => r.remove(), 500);
+}
+
+/* ── SMOOTH SCROLL HELPER ── */
+function smoothScrollToEl(el) {
+  requestAnimationFrame(() => {
+    el.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+  });
+}
+
+/* ── TRANSITION ENGINE ── */
+function transitionTo(hideId, showId, motiveId) {
+  const hideEl = document.getElementById(hideId);
+  const showEl = document.getElementById(showId);
+
+  // Exit current
+  hideEl.classList.add('exit');
+
+  setTimeout(() => {
+    hideEl.classList.remove('active','exit');
+    hideEl.style.display = 'none';
+
+    showEl.style.display = 'block';
+    showEl.offsetHeight; // force reflow
+    showEl.classList.add('active');
+
+    // Motivational banner stagger
+    if (motiveId) {
+      const m = document.getElementById(motiveId);
+      if (m) {
+        m.style.display = 'block';
+        m.offsetHeight;
+        m.classList.add('show');
+      }
+    }
+
+    // Scroll to top instantly
+    const ms = document.getElementById('main-screen');
+    ms.scrollTop = 0;
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+
+  }, 200); // reduced from 320ms
+}
+
+/* ── STEP 1: PERSONAL DETAILS ── */
+(function initStep1() {
+  const nameEl = document.getElementById('f-name');
+  const phoneEl = document.getElementById('f-phone');
+  const ageEl = document.getElementById('f-age');
+
+  // Auto-focus phone after name (on blur or Enter)
+  nameEl.addEventListener('blur', () => {
+    if (nameEl.value.trim().length >= 2) {
+      nameEl.classList.add('valid');
+      setTimeout(() => phoneEl.focus(), 80);
+    }
+  });
+  nameEl.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') { e.preventDefault(); phoneEl.focus(); }
+  });
+
+  // Auto-focus age after phone completes (10 digits)
+  phoneEl.addEventListener('input', () => {
+    const val = phoneEl.value.replace(/\D/g, '');
+    if (val.length === 10) {
+      phoneEl.classList.add('valid');
+      setTimeout(() => ageEl.focus(), 80);
+    }
+  });
+  phoneEl.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') { e.preventDefault(); ageEl.focus(); }
+  });
+  ageEl.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') { e.preventDefault(); goToStep2(e); }
+  });
+})();
+
+function goToStep2(e) {
+  const name = document.getElementById('f-name').value.trim();
+  const phone = document.getElementById('f-phone').value.trim();
+  if (!name || !phone) {
+    // Gentle shake instead of alert
+    const inp = !name ? document.getElementById('f-name') : document.getElementById('f-phone');
+    inp.style.animation = 'subtleShake 0.3s ease';
+    inp.focus();
+    setTimeout(() => { inp.style.animation = ''; }, 300);
+    return;
+  }
+  if (e && e.currentTarget) addRipple(e.currentTarget, e);
+  transitionTo('step-1', 'step-2', 'motive-2');
+}
+
+/* ── STEP 2: PROGRAMME ── */
+function selectProg(p, el) {
+  selProg = p;
+
+  // Tap pulse
+  [document.getElementById('prog-erect'), document.getElementById('prog-hormone')].forEach(c => {
+    c.classList.remove('selected','tap-pulse');
+  });
+  el.classList.add('tap-pulse');
+  requestAnimationFrame(() => requestAnimationFrame(() => {
+    el.classList.add('selected');
+  }));
+
+  const btn = document.getElementById('cta-prog');
+  btn.textContent = p === 'erect' ? 'Continue with ErectAware™ →' : 'Continue with HormoneOS™ →';
+  btn.disabled = false;
+
+  // Auto-advance after a short beat — feels like confirmation, not waiting
+  clearTimeout(autoAdvanceTimer);
+  autoAdvanceTimer = setTimeout(() => {
+    goToStep3(null, true); // autoAdvance = true
+  }, 600);
+}
+
+function goToStep3(e, autoAdvance) {
+  if (!selProg) return;
+  clearTimeout(autoAdvanceTimer);
+  if (e && e.currentTarget && !autoAdvance) addRipple(e.currentTarget, e);
+  transitionTo('step-2', 'step-3', 'motive-3');
+}
+
+/* ── STEP 3: PACKAGE + PAYMENT ── */
+function selectPkg(p, el) {
+  selPkg = p;
+
+  [document.getElementById('pkg-essential'), document.getElementById('pkg-advanced')].forEach(c => {
+    c.classList.remove('selected','tap-pulse');
+  });
+  el.classList.add('tap-pulse');
+  requestAnimationFrame(() => requestAnimationFrame(() => {
+    el.classList.add('selected');
+    if (p === 'advanced') el.classList.add('recommended');
+  }));
+
+  const progMap = { erect:'ErectAware™', hormone:'HormoneOS™' };
+  const pkgMap  = { essential:'Essential', advanced:'Advanced' };
+  const priceMap= { essential:'₹2,999', advanced:'₹3,999' };
+
+  document.getElementById('pay-prog').textContent = selProg ? progMap[selProg] : '—';
+  document.getElementById('pay-pkg').textContent  = pkgMap[p];
+  document.getElementById('pay-total').textContent= priceMap[p];
+
+  // Reveal payment block smoothly
+  const block = document.getElementById('payment-block');
+  block.style.display = 'block';
+  block.offsetHeight;
+  block.classList.add('visible');
+
+  // Auto-scroll to payment block
+  setTimeout(() => smoothScrollToEl(block), 120);
+}
+
+function selectMethod(el) {
+  document.querySelectorAll('.pay-method').forEach(m => m.classList.remove('selected'));
+  el.classList.add('selected');
+}
+
+function goToStep4(e) {
+  if (!selPkg) return;
+  if (e && e.currentTarget) addRipple(e.currentTarget, e);
+  transitionTo('step-3', 'step-4', 'motive-4');
+}
+
+/* ── STEP 4: ADDRESS ── */
+function selectTime(el) {
+  document.querySelectorAll('.time-chip').forEach(c => c.classList.remove('selected'));
+  el.classList.add('selected');
+  selTime = el.textContent;
+}
+
+function useLocation() {
+  if (!navigator.geolocation) return;
+  const btn = document.querySelector('.loc-btn');
+  btn.textContent = 'Locating…';
+  btn.disabled = true;
+  navigator.geolocation.getCurrentPosition(pos => {
+    setTimeout(() => {
+      document.getElementById('f-pin').value = '110001';
+      document.getElementById('f-city2').value = 'New Delhi';
+      document.getElementById('f-addr').focus();
+      btn.innerHTML = `<svg width="14" height="14" viewBox="0 0 16 16" fill="none"><path d="M4 8L7 11L12 5" stroke="#4A7C1F" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg> Location set`;
+      btn.disabled = false;
+    }, 700);
+  }, () => {
+    btn.innerHTML = `<svg width="14" height="14" viewBox="0 0 14 14" fill="none"><circle cx="7" cy="6" r="2.5" stroke="#4A7C1F" stroke-width="1.2"/><path d="M7 1v1M7 12v1M1 7h1M12 7h1" stroke="#4A7C1F" stroke-width="1.2" stroke-linecap="round"/><path d="M7 8.5C4.5 8.5 3 10 3 11.5h8c0-1.5-1.5-3-4-3z" fill="#4A7C1F" opacity="0.3"/></svg> Use my current location`;
+    btn.disabled = false;
+  });
+}
+
+// Auto-advance address fields
+document.getElementById('f-addr').addEventListener('keydown', (e) => {
+  if (e.key === 'Enter') { e.preventDefault(); document.getElementById('f-pin').focus(); }
+});
+document.getElementById('f-pin').addEventListener('keydown', (e) => {
+  if (e.key === 'Enter') { e.preventDefault(); document.getElementById('f-city2').focus(); }
+});
+
+function goToConfirm(e) {
+  const progMap = { erect:'ErectAware™', hormone:'HormoneOS™' };
+  const pkgMap  = { essential:'Essential · ₹2,999', advanced:'Advanced · ₹3,999' };
+  document.getElementById('confirm-prog').textContent = selProg ? progMap[selProg] : 'Not selected';
+  document.getElementById('confirm-pkg').textContent  = selPkg  ? pkgMap[selPkg]   : 'Not selected';
+  document.getElementById('confirm-time').textContent = selTime || 'Not selected';
+
+  if (e && e.currentTarget) addRipple(e.currentTarget, e);
+
+  const main    = document.getElementById('main-screen');
+  const confirm = document.getElementById('screen-confirm');
+
+  main.style.opacity   = '0';
+  main.style.transform = 'scale(0.97)';
+  main.style.transition= 'all 0.25s ease';
+
+  setTimeout(() => {
+    main.classList.add('hidden');
+    confirm.classList.remove('hidden');
+    confirm.style.opacity   = '0';
+    confirm.style.transform = 'scale(0.96)';
+    confirm.style.transition= 'all 0.35s cubic-bezier(0.22,1,0.36,1)';
+    confirm.offsetHeight;
+    confirm.style.opacity   = '1';
+    confirm.style.transform = 'scale(1)';
+  }, 220);
+}
+</script>
+</body>
+</html>
